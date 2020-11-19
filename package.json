@@ -1,0 +1,25 @@
+{
+    "name": "laravel-taster",
+    "version": "1.0.0",
+    "description": "If you're cooking new features for your Laravel app or just wanna know what tastes better this package is definitely for you!",
+    "scripts": {
+        "build": "node ./node_modules/.bin/gulp"
+    },
+    "keywords": [],
+    "authors": [
+        {
+            "name": "Anton Stasyuk",
+            "email": "anton@ntpages.com.au"
+        }
+    ],
+    "license": "MIT",
+    "devDependencies": {
+        "@babel/core": "^7.12.3",
+        "@babel/preset-env": "^7.12.1",
+        "@babel/register": "^7.12.1",
+        "gulp": "^4.0.2",
+        "gulp-babel": "^8.0.0",
+        "gulp-concat": "^2.6.1",
+        "gulp-uglify": "^3.0.2"
+    }
+}
