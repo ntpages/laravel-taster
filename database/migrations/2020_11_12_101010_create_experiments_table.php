@@ -16,7 +16,8 @@ class CreateExperimentsTable extends Migration
         Schema::create('tsr_experiments', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('key', 50)->unique();
-            $table->timestamps();
+            $table->timestamp('created_at')->useCurrent();
+            $table->timestamp('updated_at')->nullable();
         });
     }
 
