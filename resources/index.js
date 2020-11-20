@@ -35,10 +35,14 @@
 // initializing default callbacks
     ['mouseover', 'click'].forEach(function (name) {
         // delegating simple events
-        document.addEventListener(name, function (event) {
+        document.addEventListener(name, function ({ target }) {
             // catching our guy
-            if (event.target instanceof Element && event.target.matches(getTasterSelector(name))) {
-                sendRequest(element);
+            if (target instanceof Element && target.matches(getTasterSelector(name))) {
+                // disabling events that have to be fired once
+                if (target.hasAttribute('data-tsr-once')) {
+                    target.setAttribute('data-tsr-disabled', 'true');
+                }
+                sendRequest(target);
             }
         });
     });
