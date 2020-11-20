@@ -74,24 +74,24 @@ class Provider extends ServiceProvider
 
         // experiment
         Blade::directive('experiment', function ($experimentKey) {
-            return "<?php switch (app('taster')->experiment($experimentKey)) { ?>";
+            return "<?php switch (app('taster')->experiment($experimentKey)) {";
         });
 
         Blade::directive('endexperiment', function () {
-            return "<?php } ?>";
+            return "} ?>";
         });
 
         // variant
         Blade::directive('variant', function ($variantKey) {
-            return "<?php case app('taster')->variant($variantKey): ?>";
+            return " case app('taster')->variant($variantKey): ?>";
         });
 
         Blade::directive('endvariant', function () {
-            return "<?php break; ?>";
+            return "<?php break;";
         });
 
         Blade::directive('fallback', function () {
-            return "<?php default: ?>";
+            return " default: ?>";
         });
 
         /*
