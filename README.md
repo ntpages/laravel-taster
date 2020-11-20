@@ -4,7 +4,7 @@ If you're cooking new features for your Laravel app or just wanna know what tast
 
 ## First steps
 1. Install the package\
-`composer require ntpages/laravel-taster` (not in package registry yet)
+`composer require ntpages/laravel-taster`
 2. Register service provider\
 `Ntpages\LaravelTaster\Provider::class` in the `config/app.php`
 2. Run the migrations\
