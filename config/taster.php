@@ -8,13 +8,13 @@ return [
     |
     | Here we store the default values which are not recommended to update unless
     | the package overrides your app definitions or consumes to much.
-    | Assign 0 to 'cache.ttl' to disable the cache (not recommended).
+    | Assign 0 to 'cache.ttl' to disable the cache (default one day).
     |
     */
 
     'cache' => [
         'key' => 'taster.definition_config',
-        'ttl' => 0
+        'ttl' => 86400
     ],
 
     /*
