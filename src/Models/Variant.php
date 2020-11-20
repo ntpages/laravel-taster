@@ -102,6 +102,6 @@ class Variant extends AbstractModel
 
     public function isFeature()
     {
-        return (bool)$this->attributes['experiment_id'] ?? null;
+        return !isset($this->attributes['experiment_id']);
     }
 }
