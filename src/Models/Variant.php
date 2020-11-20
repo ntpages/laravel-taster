@@ -4,7 +4,6 @@ namespace Ntpages\LaravelTaster\Models;
 
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Validation\Rule;
 
 /**
  * @property Collection|Interaction[] $interactions
@@ -19,6 +18,13 @@ class Variant extends AbstractModel
      * @var string
      */
     public $table = 'tsr_variants';
+
+    /**
+     * @var array
+     */
+    public $fillable = [
+        'portion'
+    ];
 
     /*
     |--------------------------------------------------------------------------
@@ -78,6 +84,10 @@ class Variant extends AbstractModel
 
     public function getAvailablePortionAttribute()
     {
+        if ($this->isFeature()) {
+            return 1;
+        }
+
         return (double)static::selectRaw('IFNULL(1 - SUM(portion), 1) AS available')
             ->where('experiment_id', $this->attributes['experiment_id'])
             ->where('id', '<>', $this->id)
@@ -92,22 +102,6 @@ class Variant extends AbstractModel
 
     public function isFeature()
     {
-        return is_null($this->attributes['experiment_id']);
-    }
-
-    public function getValidationRules()
-    {
-        return [
-            'key' => [
-                'required',
-                'alpha_dash',
-                'max:50',
-                Rule::unique($this->table, 'key')
-                    ->where(function (Builder $query) {
-                        return $query->where('experiment_id', $this->attributes['experiment_id']);
-                    })
-                    ->ignoreModel($this)
-            ]
-        ];
+        return (bool)$this->attributes['experiment_id'] ?? null;
     }
 }

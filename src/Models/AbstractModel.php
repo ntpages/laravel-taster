@@ -13,5 +13,21 @@ abstract class AbstractModel extends Model
     /**
      * @return array
      */
-    abstract public function getValidationRules();
+    public function getValidationRules()
+    {
+        return [
+            'key' => "required|alpha_dash|max:50|unique:{$this->table},key,{$this->id}"
+        ];
+    }
+
+    /**
+     * Makes sure that common columns are in the fallible attribute
+     * @return array
+     */
+    public function getFillable()
+    {
+        $this->fillable[] = 'key';
+
+        return $this->fillable;
+    }
 }
