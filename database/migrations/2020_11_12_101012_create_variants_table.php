@@ -25,7 +25,7 @@ class CreateVariantsTable extends Migration
             // 0.9  -> 90%
             // 0.0  -> disabled, out of portioning
             // 1    -> enabled to 100% if feature
-            $table->decimal('portion', 1, 1)->default(0);
+            $table->decimal('portion', 1, 1)->nullable(0);
 
             // relations
             $table->unsignedBigInteger('experiment_id')->nullable();

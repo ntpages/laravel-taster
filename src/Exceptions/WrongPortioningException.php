@@ -2,9 +2,7 @@
 
 namespace Ntpages\LaravelTaster\Exceptions;
 
-use Exception;
-
-class WrongPortioningException extends Exception
+class WrongPortioningException extends AbstractTasterException
 {
     public function __construct()
     {

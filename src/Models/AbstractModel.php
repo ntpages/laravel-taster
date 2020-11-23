@@ -11,6 +11,16 @@ use Illuminate\Database\Eloquent\Model;
 abstract class AbstractModel extends Model
 {
     /**
+     * Shortcut for ease searching
+     * @param string $key
+     * @return $this|null
+     */
+    public static function findByKey(string $key)
+    {
+        return self::where('key', $key)->first();
+    }
+
+    /**
      * @return array
      */
     public function getValidationRules()
@@ -26,8 +36,18 @@ abstract class AbstractModel extends Model
      */
     public function getFillable()
     {
-        $this->fillable[] = 'key';
+        if (!in_array('key', $this->fillable)) {
+            $this->fillable[] = 'key';
+        }
 
         return $this->fillable;
+    }
+
+    /**
+     * @return string
+     */
+    public function getRouteKeyName()
+    {
+        return 'key';
     }
 }

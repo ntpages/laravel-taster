@@ -2,9 +2,7 @@
 
 namespace Ntpages\LaravelTaster\Exceptions;
 
-use Exception;
-
-class UnexpectedVariantException extends Exception
+class UnexpectedVariantException extends AbstractTasterException
 {
     public function __construct(string $key)
     {

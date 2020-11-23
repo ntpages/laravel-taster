@@ -125,13 +125,7 @@ class Provider extends ServiceProvider
          */
 
         Blade::directive('interact', function ($interactionKey) {
-            $className = Interact::class;
-            return "<?php event(
-                new \\$className(
-                    app('taster')->getInteraction($interactionKey),
-                    app('taster')->getCurrentVariant()
-                )
-            ); ?>";
+            return "<?php app('taster')->interact($interactionKey); ?>";
         });
     }
 }

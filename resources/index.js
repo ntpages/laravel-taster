@@ -4,7 +4,7 @@
      * @return {string}
      */
     function getTasterSelector(name) {
-        return `[data-tsr-url][data-tsr-event="${name}"]:not([data-tsr-disabled])`;
+        return `[data-tsr-url][data-tsr-event*="${name}"]:not([data-tsr-disabled])`;
     }
 
     /**

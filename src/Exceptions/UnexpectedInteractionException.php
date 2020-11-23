@@ -2,9 +2,7 @@
 
 namespace Ntpages\LaravelTaster\Exceptions;
 
-use Exception;
-
-class UnexpectedInteractionException extends Exception
+class UnexpectedInteractionException extends AbstractTasterException
 {
     public function __construct()
     {

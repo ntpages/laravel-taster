@@ -7,15 +7,14 @@ use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Cache;
 
 use Ntpages\LaravelTaster\Exceptions\UnexpectedInteractionException;
-use Ntpages\LaravelTaster\Exceptions\InteractionNotFoundException;
-use Ntpages\LaravelTaster\Exceptions\ExperimentNotFoundException;
 use Ntpages\LaravelTaster\Exceptions\UnexpectedVariantException;
-use Ntpages\LaravelTaster\Exceptions\FeatureNotFoundException;
-use Ntpages\LaravelTaster\Exceptions\VariantNotFoundException;
 use Ntpages\LaravelTaster\Exceptions\WrongPortioningException;
+use Ntpages\LaravelTaster\Exceptions\ElementNotFoundException;
+use Ntpages\LaravelTaster\Models\AbstractModel;
 use Ntpages\LaravelTaster\Models\Interaction;
 use Ntpages\LaravelTaster\Models\Experiment;
 use Ntpages\LaravelTaster\Models\Variant;
+use Ntpages\LaravelTaster\Events\Interact;
 
 class TasterService
 {
@@ -112,12 +111,12 @@ class TasterService
     /**
      * @param string $key
      * @return mixed
-     * @throws InteractionNotFoundException
+     * @throws ElementNotFoundException
      */
     public function getInteraction(string $key)
     {
         if (!$this->interactions->has($key)) {
-            throw new InteractionNotFoundException($key);
+            throw new ElementNotFoundException('Interaction', $key);
         }
 
         return $this->interactions->get($key);
@@ -139,7 +138,7 @@ class TasterService
     /**
      * @param string $key
      * @return int
-     * @throws ExperimentNotFoundException
+     * @throws ElementNotFoundException
      * @throws WrongPortioningException
      */
     public function experiment(string $key)
@@ -148,7 +147,7 @@ class TasterService
         $this->currentVariant = null;
 
         if (!$this->currentExperiment) {
-            throw new ExperimentNotFoundException($key);
+            throw new ElementNotFoundException('Experiment', $key);
         }
 
         $cookieValue = $this->getCookie($this->currentExperiment);
@@ -169,8 +168,8 @@ class TasterService
     /**
      * @param string $key
      * @return int
-     * @throws VariantNotFoundException
      * @throws UnexpectedVariantException
+     * @throws ElementNotFoundException
      */
     public function variant(string $key)
     {
@@ -184,7 +183,7 @@ class TasterService
         })->first();
 
         if (!$this->currentVariant) {
-            throw new VariantNotFoundException($this->currentExperiment->key, $key);
+            throw new ElementNotFoundException('Variant', $key);
         }
 
         return $this->currentVariant->id;
@@ -193,7 +192,7 @@ class TasterService
     /**
      * @param string $key
      * @return bool
-     * @throws FeatureNotFoundException
+     * @throws ElementNotFoundException
      * @throws WrongPortioningException
      */
     public function feature(string $key)
@@ -202,23 +201,70 @@ class TasterService
         $this->currentExperiment = null;
 
         if (!$this->currentVariant) {
-            throw new FeatureNotFoundException($key);
+            throw new ElementNotFoundException('Feature', $key);
         }
 
-        $cookieValue = $this->getCookie($this->currentVariant);
+        switch ($this->currentVariant->portion) {
+            case 0:
+                return false;
 
-        if (!is_null($cookieValue)) {
-            return $cookieValue;
+            case null:
+                return true;
+
+            default:
+                $cookieValue = $this->getCookie($this->currentVariant);
+
+                if (!is_null($cookieValue)) {
+                    return $cookieValue;
+                }
+
+                $featureState = (bool)$this->pickValue([
+                    false => 1 - $this->currentVariant->portion,
+                    true => $this->currentVariant->portion
+                ]);
+
+                $this->setCookie($featureState, $this->currentVariant);
+
+                return $featureState;
+        }
+    }
+
+    /**
+     * todo: comment this method
+     *
+     * @param string $interactionKey
+     * @param AbstractModel|null $object
+     * @throws ElementNotFoundException
+     * @throws UnexpectedInteractionException
+     */
+    public function interact(string $interactionKey, $object = null)
+    {
+        switch (true) {
+            case $object instanceof Experiment:
+                if ($variantId = $this->getCookie($object)) {
+                    $variant = $object->variants->find($variantId);
+                }
+                break;
+
+            case $object instanceof Variant:
+                if ($this->getCookie($object)) {
+                    $variant = $object;
+                }
+                break;
+
+            case is_null($object):
+                $variant = $this->getCurrentVariant();
+                break;
         }
 
-        $featureState = (bool)$this->pickValue([
-            false => 1 - $this->currentVariant->portion,
-            true => $this->currentVariant->portion
-        ]);
-
-        $this->setCookie($featureState, $this->currentVariant);
-
-        return $featureState;
+        if (isset($variant)) {
+            event(
+                new Interact(
+                    $this->getInteraction($interactionKey),
+                    $variant
+                )
+            );
+        }
     }
 
     /**
@@ -245,6 +291,15 @@ class TasterService
     }
 
     /**
+     * @param Experiment|Variant $object
+     * @return int|boolean|null
+     */
+    public function getCookie($object)
+    {
+        return $this->cookies[self::COOKIE_KEYS[get_class($object)]][$object->id] ?? null;
+    }
+
+    /**
      * @param int|boolean $value
      * @param Experiment|Variant $object
      */
@@ -253,14 +308,5 @@ class TasterService
         $this->cookies[self::COOKIE_KEYS[get_class($object)]][$object->id] = $value;
 
         Cookie::queue($this->cookieKey, json_encode($this->cookies), $this->cookieTtl);
-    }
-
-    /**
-     * @param Experiment|Variant $object
-     * @return int|boolean|null
-     */
-    private function getCookie($object)
-    {
-        return $this->cookies[self::COOKIE_KEYS[get_class($object)]][$object->id] ?? null;
     }
 }

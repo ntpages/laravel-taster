@@ -24,17 +24,4 @@ class Experiment extends AbstractModel
     {
         return $this->hasMany(Variant::class);
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Helpers
-    |--------------------------------------------------------------------------
-    */
-
-    public function getValidationRules()
-    {
-        return [
-            'key' => "required|alpha_dash|max:50|unique:{$this->table},key,{$this->id}"
-        ];
-    }
 }
