@@ -26,49 +26,78 @@ That's the only time you'll need the blade directive, it's so simple as this:
 ```blade
 @interact('interaction-key')
 ```
+> Keep in mind that interactions should always be used inside of `@variant` or `@feature` however, you'll see the
+> `UnexpectedInteractionException` in case you forgot how that works.
 
 #### Events
+You can capture few frontend events:
+- mouseover
+- click
+- view (provided by the package, triggered whenever element is in the viewport)
+
 In this case we've prepared a view helper that should be used inside of the attribute definition are of an HTML element.
 ```blade
-<button {{ interact('interaction-key', 'js-event-key') }}>Get 50% discount</button>
-```
-> The package supports only one event per element so if you need to capture multiple, like for example `mouseenter`
-> and `mouseleave` you can wrap elements one inside another
-```blade
-{{-- event 1 --}}
-<button {{ interact('sign-in-cta', 'click') }}>
-
-    {{-- event 2 --}}
-    <div {{ interact('wanted-to-sign-in', 'mouseenter') }}>
-
-        {{-- event 3 --}}
-        <div {{ interact('reconsidered-sign-in', 'mouseleave') }}>
-            Get 50% discount
-        </div>
-
-    </div>
-
+<button {{ tsrEvent('wanted-discount', 'mouseover') }}>
+    Get 50% discount
 </button>
 ```
+
+You can also specify multiple events. Have in mind that all of them have the same "repetition" policy and are related
+to the same interaction type.
+```blade
+<button {{ tsrEvent('wanted-discount', ['mouseover', 'click']) }}>
+    Get 50% discount
+</button>
+```
+
+If you need to split those to different interactions just wrap the target with multiple html tags.
+```blade
+<button {{ tsrEvent('requested-discount', 'click') }}>
+    {{-- takes all the space in the button --}}
+    <div {{ tsrEvent('wanted-discount', 'mouseover') }}>
+        Get 50% discount
+    </div>
+</button>
+```
+
+It's also possible to capture events all the times that those happen, for that just provide a third parameter.
+```blade
+<button {{ tsrEvent('number-is-low', 'click', false) }}>
+    Increase number
+</button>
+```
+> The `view` event ignores the third element
 
 #### Backend
 You always can send an event manually whenever you need if for example you've created a route for each variant/feature,
 and you want to track the visits to those pages, just use this structure in your controller:
 ```php
 use Ntpages\LaravelTaster\Models\Interaction;
-use Ntpages\LaravelTaster\Models\Variant;
 use Ntpages\LaravelTaster\Events\Interact;
+use Ntpages\LaravelTaster\Models\Variant;
 
-$interaction = Interaction::where('key', 'visit')->first();
-$variant = Variant::where('key', 'cat-page')->first();
-
-if ($interaction && $variant) {
-    event(new Interact($interaction, $variant));
-}
+event(
+    new Interact(
+        Interaction::findByKey('visit'),
+        Variant::findByKey('cat-page')
+    )
+);
 ```
 
-> Keep in mind that interactions should always be used inside of `@variant` or `@feature` however, you'll see the
-> `UnexpectedInteractionException` in case you forgot how that works.
+You also can auto detect which variant user saw.
+```php
+use Ntpages\LaravelTaster\Models\Experiment;
+
+app('taster')->interact('interaction-key', Experiment::findByKey('experiment-key'));
+```
+
+Or for feature flagging:
+```php
+use Ntpages\LaravelTaster\Models\Variant;
+
+app('taster')->interact('interaction-key', Variant::findByKey('feature-key'));
+```
+
 
 ### Feature flagging
 Stored under `tsr_variants` and not related to any experiment. Managed simply modifying the `portion` attribute,

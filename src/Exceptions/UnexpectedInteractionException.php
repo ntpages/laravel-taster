@@ -2,12 +2,10 @@
 
 namespace Ntpages\LaravelTaster\Exceptions;
 
-use Exception;
-
-class UnexpectedInteractionException extends Exception
+class UnexpectedInteractionException extends AbstractTasterException
 {
     public function __construct()
     {
-        parent::__construct('The [@interact, interact()] is intended to be used within @variant or @feature');
+        parent::__construct('The tsrEvent() helper is intended to be used within @variant or @feature');
     }
 }

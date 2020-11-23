@@ -23,10 +23,9 @@ class Provider extends ServiceProvider
     {
         $packageDir = dirname(__DIR__);
 
-        // files
         $this->publishes([
-            "$packageDir/public/js/index.js" => public_path('vendor/tsr/index.js'),
-            "$packageDir/config/taster.php" => config_path('taster.php')
+            $packageDir . '/public/js/index.js' => public_path('vendor/tsr/index.js'),
+            $packageDir . '/config/taster.php' => config_path('taster.php')
         ]);
         $this->loadMigrationsFrom("$packageDir/database/migrations");
         $this->loadRoutesFrom("$packageDir/routes/taster.php");
@@ -42,9 +41,8 @@ class Provider extends ServiceProvider
         // todo: figure out if helper can be required automatically
         // todo: configure auto detection for PhpStorm
         // blade directives
-        require $packageDir . "/src/helpers.php";
+        require $packageDir . '/src/helpers.php';
         $this->defineConditionalDirectives();
-        $this->defineActionDirectives();
     }
 
     /**
@@ -66,9 +64,6 @@ class Provider extends ServiceProvider
         |           <TEMPLATE>
         |       @endvariant
         |
-        |       @fallback
-        |           <TEMPLATE>
-        |
         |   @endexperiment
         */
 
@@ -78,7 +73,7 @@ class Provider extends ServiceProvider
         });
 
         Blade::directive('endexperiment', function () {
-            return "} ?>";
+            return "} app('taster')->reset(); ?>";
         });
 
         // variant
@@ -87,11 +82,7 @@ class Provider extends ServiceProvider
         });
 
         Blade::directive('endvariant', function () {
-            return "<?php break;";
-        });
-
-        Blade::directive('fallback', function () {
-            return " default: ?>";
+            return "<?php app('taster')->reset(); break;";
         });
 
         /*
@@ -100,38 +91,21 @@ class Provider extends ServiceProvider
         |--------------------------------------------------------------------------
         |   @feature(string $featureKey)
         |       <TEMPLATE>
-        |   ?@else
+        |   ?@fallback
         |       ?<TEMPLATE>
         |   @endfeature
         */
 
-        Blade::if('feature', function ($featureKey) {
-            return app('taster')->feature($featureKey);
+        Blade::directive('feature', function ($featureKey) {
+            return "<?php if (app('taster')->feature($featureKey)) { ?>";
         });
-    }
 
-    /**
-     * Directives used to take actions
-     */
-    private function defineActionDirectives()
-    {
-        /*
-         |--------------------------------------------------------------------------
-         | Feature.
-         |--------------------------------------------------------------------------
-         |  @interact(string $interactionKey)
-         |
-         |  IMPORTANT can be used only inside of @variant or @feature see method above
-         */
+        Blade::directive('fallback', function () {
+            return "<?php app('taster')->reset(); } else { ?>";
+        });
 
-        Blade::directive('interact', function ($interactionKey) {
-            $className = Interact::class;
-            return "<?php event(
-                new \\$className(
-                    app('taster')->getInteraction($interactionKey),
-                    app('taster')->getCurrentVariant()
-                )
-            ); ?>";
+        Blade::directive('endfeature', function () {
+            return "<?php app('taster')->reset(); } ?>";
         });
     }
 }

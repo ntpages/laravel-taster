@@ -2,9 +2,7 @@
 
 namespace Ntpages\LaravelTaster\Exceptions;
 
-use Exception;
-
-class UnsupportedEventException extends Exception
+class UnsupportedEventException extends AbstractTasterException
 {
     public function __construct(string $key)
     {

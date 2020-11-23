@@ -3,9 +3,6 @@
 namespace Ntpages\LaravelTaster\Listeners;
 
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Bus\Queueable;
-
 use Ntpages\LaravelTaster\Events\Interact;
 
 // todo:
@@ -14,8 +11,6 @@ use Ntpages\LaravelTaster\Events\Interact;
 
 class CaptureInteraction implements ShouldQueue
 {
-    use Queueable, SerializesModels;
-
     /**
      * @param Interact $event
      * @return void
