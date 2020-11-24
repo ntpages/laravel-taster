@@ -8,6 +8,7 @@ use Ntpages\LaravelTaster\Events\Interact;
 // todo:
 //      - allow user to disable Queueable functionality
 //      - resolve the queue name assign from config
+//      - fix the bug with the `moment` not saving
 
 class CaptureInteraction implements ShouldQueue
 {
