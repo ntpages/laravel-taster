@@ -21,14 +21,6 @@ for consistency and tracking purposes. The package uses tables prefixed with `ts
 In order to be able to measure the influence of the feature or tests you should create interactions.
 Table `tsr_interactions`.
 
-#### Impressions
-That's the only time you'll need the blade directive, it's so simple as this:
-```blade
-@interact('interaction-key')
-```
-> Keep in mind that interactions should always be used inside of `@variant` or `@feature` however, you'll see the
-> `UnexpectedInteractionException` in case you forgot how that works.
-
 #### Events
 You can capture few frontend events:
 - mouseover
@@ -78,8 +70,8 @@ use Ntpages\LaravelTaster\Models\Variant;
 
 event(
     new Interact(
-        Interaction::findByKey('visit'),
-        Variant::findByKey('cat-page')
+        Interaction::findByKey('visit-page'),
+        Variant::findByKey('home-update')
     )
 );
 ```
@@ -105,9 +97,8 @@ set it to `0` if you want to disable the feature or any number between `0` and `
 audience that should see that feature.
 ```blade
 @feature('feature-key')
-    @interact('rendered')
     feature body here
-@else
+@fallback
     optional fallback
 @endfeature
 ```
