@@ -181,7 +181,7 @@ class TasterService
     private function pick(array $items)
     {
         if (array_sum(array_values($items)) > 1) {
-            throw new WrongPortioningException();
+            throw new WrongPortioningException(1);
         }
 
         $ids = [];

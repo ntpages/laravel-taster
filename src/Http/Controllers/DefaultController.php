@@ -33,6 +33,6 @@ class DefaultController extends Controller
             Variant::findOrFail($ids['variant'])
         );
 
-        return response()->noContent();
+        return response(true);
     }
 }

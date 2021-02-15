@@ -19,7 +19,7 @@ class Provider extends ServiceProvider
         $packageDir = dirname(__DIR__);
 
         $this->publishes([
-            "$packageDir/public/js/index.js" => public_path('vendor/tsr/index.js'),
+            "$packageDir/public/js/taster.js" => public_path('vendor/tsr/taster.js'),
             "$packageDir/config/taster.php" => config_path('taster.php')
         ]);
 
