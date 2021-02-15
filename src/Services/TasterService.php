@@ -10,261 +10,166 @@ use Ntpages\LaravelTaster\Exceptions\UnexpectedInteractionException;
 use Ntpages\LaravelTaster\Exceptions\UnexpectedVariantException;
 use Ntpages\LaravelTaster\Exceptions\WrongPortioningException;
 use Ntpages\LaravelTaster\Exceptions\ElementNotFoundException;
-use Ntpages\LaravelTaster\Models\AbstractModel;
 use Ntpages\LaravelTaster\Models\Interaction;
 use Ntpages\LaravelTaster\Models\Experiment;
-use Ntpages\LaravelTaster\Events\Interact;
 use Ntpages\LaravelTaster\Models\Variant;
+use Ntpages\LaravelTaster\Events\Interact;
 
 class TasterService
 {
-    const EVENT_TYPE_MOUSEOVER = 'mouseover';
-    const EVENT_TYPE_CLICK = 'click';
-    const EVENT_TYPE_VIEW = 'view';
-
-    // just semantics
-    const EVENT_TYPES = [
-        self::EVENT_TYPE_MOUSEOVER,
-        self::EVENT_TYPE_CLICK,
-        self::EVENT_TYPE_VIEW,
-    ];
-
-    // to keep code safer
-    const COOKIE_KEYS = [
-        Experiment::class => 'ex',  // when saving experiment
-        Variant::class => 'fe'      // when saving feature
-    ];
-
-    /**
-     * @var Collection|Interaction[]
-     */
-    private $interactions;
-
-    /**
-     * @var Collection|Experiment[]
-     */
-    private $experiments;
-
-    /**
-     * @var Collection|Variant[]
-     */
-    private $features;
-
-    /**
-     * @var Experiment
-     */
-    private $currentExperiment;
-
-    /**
-     * @var Variant
-     */
-    private $currentVariant;
+    const JS_EVENTS = ['view', 'hover', 'click'];
 
     /**
      * @var string
      */
-    private $cookieKey;
+    private string $cookieKey;
 
     /**
      * @var int
      */
-    private $cookieTtl;
+    private int $cookieTtl;
 
     /**
-     * @see TasterService::COOKIE_KEYS
-     * @var array[string][int|bool]
+     * @var array
      */
-    private $cookies;
+    private array $cookies;
 
     /**
-     * TasterService constructor.
+     * @var Collection[]
      */
+    private array $instances;
+
+    private ?Experiment $currentExperiment;
+    private ?Variant $currentVariant;
+
     public function __construct()
     {
-        $this->cookieKey = config('taster.cookie.key', 'tsr');
+        $this->cookieKey = config('taster.cookie.key', 'taster');
         $this->cookieTtl = config('taster.cookie.ttl', 2628000);
+        $this->cookies = json_decode(Cookie::get($this->cookieKey, '{}'), true);
 
-        // getting current cookies
-        $this->cookies = Cookie::has($this->cookieKey)
-            ? json_decode(Cookie::get($this->cookieKey), true)
-            : array_fill_keys(array_values(self::COOKIE_KEYS), []);
+        // setting up the cache for the PHP app
+        $cache = config('taster.cache', ['key' => 'taster', 'ttl' => null]);
+        $args = [$cache['key']];
 
-        $retrieve = function () {
+        // when cache ttl is null it's stored forever
+        if ($cache['ttl'] && $cache['ttl'] > 0) {
+            array_push($args, $cache['ttl']);
+        }
+
+        // the callback that retrieves the models
+        array_push($args, function () {
+            foreach ($experiments = Experiment::with('variants')->get() as $experiment) {
+                $experiment->variants = $experiment->variants->keyBy('key');
+            }
+
             return [
-                Interaction::all()->keyBy('key'),
-                Experiment::with('variants')->get()->keyBy('key'),
-                Variant::features()->get()->keyBy('key')
+                Interaction::class => Interaction::all()->keyBy('key'),
+                Experiment::class => $experiments->keyBy('key'),
             ];
-        };
+        });
 
-        $cacheConfig = config('taster.cache');
-        list(
-            $this->interactions,
-            $this->experiments,
-            $this->features
-            ) =
-            $cacheConfig['ttl'] && $cacheConfig['key']
-                ? Cache::remember($cacheConfig['key'], $cacheConfig['ttl'], $retrieve)
-                : $retrieve();
+        // toggling between two different cache strategies
+        $this->instances = count($args) === 3 ? Cache::remember(...$args) : Cache::forever(...$args);
     }
 
     /**
      * @param string $key
-     * @return mixed
+     * @return string
+     * @throws UnexpectedInteractionException
      * @throws ElementNotFoundException
      */
-    public function getInteraction(string $key)
+    public function getInteractionUrl(string $key): string
     {
-        if (!$this->interactions->has($key)) {
-            throw new ElementNotFoundException('Interaction', $key);
-        }
-
-        return $this->interactions->get($key);
-    }
-
-    /**
-     * @return Variant
-     * @throws UnexpectedInteractionException
-     */
-    public function getCurrentVariant()
-    {
-        if (!$this->currentVariant) {
+        if (is_null($this->currentVariant)) {
             throw new UnexpectedInteractionException();
         }
 
-        return $this->currentVariant;
+        $interaction = $this->instances[Interaction::class]->get($key);
+
+        if (is_null($interaction)) {
+            throw new ElementNotFoundException(Interaction::class, $key);
+        }
+
+        return route(config('taster.route.name'), [
+            // protecting from guessing the ids combination
+            'token' => encrypt([
+                'variant' => $this->currentVariant->id,
+                'interaction' => $interaction->id
+            ])
+        ]);
     }
 
     /**
-     * @param string $key
-     * @return int
+     * @param string $key Unique name of the experiment
+     * @return int Picked variant ID
      * @throws ElementNotFoundException
      * @throws WrongPortioningException
      */
-    public function experiment(string $key)
+    public function experiment(string $key): ?int
     {
-        $this->currentExperiment = $this->experiments->get($key);
+        $this->currentExperiment = $this->instances[Experiment::class]->get($key);
         $this->currentVariant = null;
 
-        if (!$this->currentExperiment) {
-            throw new ElementNotFoundException('Experiment', $key);
+        if (is_null($this->currentExperiment)) {
+            throw new ElementNotFoundException(Experiment::class, $key);
         }
 
-        $cookieValue = $this->getCookie($this->currentExperiment);
+        // see if already have a variant assigned
+        $cookieValue = $this->getCookie($this->currentExperiment->id);
 
-        if (!is_null($cookieValue)) {
+        if (is_int($cookieValue)) {
             return $cookieValue;
         }
 
         // retrieving the variant
-        $variantId = $this->pickValue($this->currentExperiment->variants->pluck('portion', 'id')->toArray());
+        $pickedId = $this->pick($this->currentExperiment->variants->pluck('portion', 'id')->toArray());
 
         // saving it
-        $this->setCookie($variantId, $this->currentExperiment);
+        $this->setCookie($this->currentExperiment->id, $pickedId);
 
-        return $variantId;
+        return $pickedId;
     }
 
     /**
-     * @param string $key
-     * @return int
+     * @param string $key Unique name of the variant for the current experiment
+     * @return int Variant id
      * @throws UnexpectedVariantException
      * @throws ElementNotFoundException
      */
-    public function variant(string $key)
+    public function variant(string $key): ?int
     {
-        if (!$this->currentExperiment) {
-            // fixme: not reachable because of the blade compilation. Unexpected `case:` thrown before hit this point
+        if (is_null($this->currentExperiment)) {
             throw new UnexpectedVariantException($key);
         }
 
-        $this->currentVariant = $this->currentExperiment->variants->filter(function (Variant $variant) use ($key) {
-            return $variant->key === $key;
-        })->first();
+        $this->currentVariant = $this->currentExperiment->variants->get($key);
 
-        if (!$this->currentVariant) {
-            throw new ElementNotFoundException('Variant', $key);
+        if (is_null($this->currentVariant)) {
+            throw new ElementNotFoundException(Variant::class, $key);
         }
 
         return $this->currentVariant->id;
     }
 
     /**
-     * @param string $key
-     * @return bool
-     * @throws ElementNotFoundException
-     * @throws WrongPortioningException
-     */
-    public function feature(string $key)
-    {
-        $this->currentVariant = $this->features->get($key);
-        $this->currentExperiment = null;
-
-        if (!$this->currentVariant) {
-            throw new ElementNotFoundException('Feature', $key);
-        }
-
-        switch ($this->currentVariant->portion) {
-            case 0:
-                return false;
-
-            case null:
-                return true;
-
-            default:
-                $cookieValue = $this->getCookie($this->currentVariant);
-
-                if (!is_null($cookieValue)) {
-                    return $cookieValue;
-                }
-
-                $featureState = (bool)$this->pickValue([
-                    false => 1 - $this->currentVariant->portion,
-                    true => $this->currentVariant->portion
-                ]);
-
-                $this->setCookie($featureState, $this->currentVariant);
-
-                return $featureState;
-        }
-    }
-
-    /**
-     * todo: comment this method
-     *
-     * @param string $interactionKey
-     * @param AbstractModel|null $object
-     * @throws ElementNotFoundException
+     * @param string $key Unique name of the interaction
      * @throws UnexpectedInteractionException
+     * @throws ElementNotFoundException
      */
-    public function interact(string $interactionKey, $object = null)
+    public function interact(string $key): void
     {
-        switch (true) {
-            case $object instanceof Experiment:
-                if ($variantId = $this->getCookie($object)) {
-                    $variant = $object->variants->find($variantId);
-                }
-                break;
-
-            case $object instanceof Variant:
-                if ($this->getCookie($object)) {
-                    $variant = $object;
-                }
-                break;
-
-            case is_null($object):
-                $variant = $this->getCurrentVariant();
-                break;
+        if (is_null($this->currentVariant)) {
+            throw new UnexpectedInteractionException();
         }
 
-        if (isset($variant)) {
-            event(
-                new Interact(
-                    $this->getInteraction($interactionKey),
-                    $variant
-                )
-            );
+        $interaction = $this->instances[Interaction::class]->get($key);
+
+        if (is_null($interaction)) {
+            throw new ElementNotFoundException(Interaction::class, $key);
         }
+
+        Interact::dispatch($interaction, $this->currentVariant);
     }
 
     /**
@@ -273,49 +178,40 @@ class TasterService
      * @return mixed
      * @throws WrongPortioningException
      */
-    private function pickValue(array $items)
+    private function pick(array $items)
     {
         if (array_sum(array_values($items)) > 1) {
             throw new WrongPortioningException();
         }
 
-        $arr = [];
-        foreach ($items as $key => $portion) {
+        $ids = [];
+        foreach ($items as $id => $portion) {
             $i = $portion * 100;
             while (--$i > -1) {
-                array_push($arr, $key);
+                array_push($ids, $id);
             }
         }
 
-        return $arr[array_rand($arr, 1)];
-    }
-
-    public function reset()
-    {
-        if ($this->currentVariant) {
-            $this->currentVariant = null;
-        } else {
-            $this->currentExperiment = null;
-        }
+        return $ids[array_rand($ids, 1)];
     }
 
     /**
-     * @param Experiment|Variant $object
-     * @return int|boolean|null
+     * @param int $experimentId
+     * @param int $variantId
      */
-    public function getCookie($object)
+    private function setCookie(int $experimentId, int $variantId)
     {
-        return $this->cookies[self::COOKIE_KEYS[get_class($object)]][$object->id] ?? null;
-    }
-
-    /**
-     * @param int|boolean $value
-     * @param Experiment|Variant $object
-     */
-    private function setCookie($value, $object)
-    {
-        $this->cookies[self::COOKIE_KEYS[get_class($object)]][$object->id] = $value;
+        $this->cookies[$experimentId] = $variantId;
 
         Cookie::queue($this->cookieKey, json_encode($this->cookies), $this->cookieTtl);
+    }
+
+    /**
+     * @param int $experimentId
+     * @return string|null
+     */
+    private function getCookie(int $experimentId)
+    {
+        return $this->cookies[$experimentId] ?? null;
     }
 }

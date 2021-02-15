@@ -2,52 +2,27 @@
 
 namespace Ntpages\LaravelTaster\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 /**
- * @property Collection|Interaction[] $interactions
- * @property Experiment|null $experiment
- * @property double $available_portion
- * @property double $portion
- * @method static features()
+ * @property-read int $id
+ * @property string $key
+ * @property string $name
+ * @property float $portion
+ * @property float $availablePortion
+ * @property Experiment $experiment
+ * @method siblings(): Collection|Variant[]
  */
-class Variant extends AbstractModel
+class Variant extends Model
 {
     /**
      * @var string
      */
     public $table = 'tsr_variants';
-
-    /**
-     * @var array
-     */
-    public $fillable = [
-        'portion'
-    ];
-
-    /*
-    |--------------------------------------------------------------------------
-    | Lifecycle
-    |--------------------------------------------------------------------------
-    */
-
-    public static function boot()
-    {
-        parent::boot();
-
-        self::saving(function (Variant $variant) {
-            // only applicable for grouped variants
-            if ($variant->isFeature()) {
-                return true;
-            }
-
-            // avoiding unnecessary check
-            return $variant->portion != $variant->getOriginal('portion')
-                ? $variant->portion <= $variant->available_portion
-                : true;
-        });
-    }
 
     /*
     |--------------------------------------------------------------------------
@@ -55,12 +30,12 @@ class Variant extends AbstractModel
     |--------------------------------------------------------------------------
     */
 
-    public function interactions()
+    public function interactions(): BelongsToMany
     {
-        return $this->belongsToMany(Interaction::class, 'tsr_interaction_variant')->withPivot('moment');
+        return $this->belongsToMany(Interaction::class, 'tsr_stats')->withPivot('moment');
     }
 
-    public function experiment()
+    public function experiment(): BelongsTo
     {
         return $this->belongsTo(Experiment::class);
     }
@@ -71,27 +46,12 @@ class Variant extends AbstractModel
     |--------------------------------------------------------------------------
     */
 
-    public function scopeFeatures(Builder $query)
+    public function scopeSiblings(Builder $query): Collection
     {
-        return $query->whereNull('experiment_id');
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Accessor
-    |--------------------------------------------------------------------------
-    */
-
-    public function getAvailablePortionAttribute()
-    {
-        if ($this->isFeature()) {
-            return 1;
-        }
-
-        return (double)static::selectRaw('IFNULL(1 - SUM(portion), 1) AS available')
-            ->where('experiment_id', $this->attributes['experiment_id'])
+        return $query
+            ->where('experiment_id', '=', $this->experiment->id)
             ->where('id', '<>', $this->id)
-            ->value('available');
+            ->get();
     }
 
     /*
@@ -100,8 +60,8 @@ class Variant extends AbstractModel
     |--------------------------------------------------------------------------
     */
 
-    public function isFeature()
+    public function getAvailablePortionAttribute()
     {
-        return !isset($this->attributes['experiment_id']);
+        return $this->siblings()->pluck('portion')->sum() ?? .9;
     }
 }

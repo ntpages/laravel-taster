@@ -1,11 +1,9 @@
 {
     "name": "ntpages/laravel-taster",
-    "description": "Laravel package for A/B testing & feature staged rollouts",
+    "description": "Laravel package for A/B testing",
     "keywords": [
         "laravel",
-        "ab-testing",
-        "features",
-        "rollouts"
+        "ab-testing"
     ],
     "license": "MIT",
     "authors": [
@@ -15,9 +13,9 @@
         }
     ],
     "require": {
-        "php": "^7.1.3",
+        "php": "^7.4",
         "ext-json": "*",
-        "laravel/framework": "^5.7.25|^6|^7|^8"
+        "laravel/framework": "^8.x"
     },
     "autoload": {
         "psr-4": {
@@ -35,8 +33,5 @@
                 "Ntpages\\LaravelTaster\\Provider"
             ]
         }
-    },
-    "scripts": {
-        "post-install-cmd": []
     }
 }

@@ -2,12 +2,14 @@
 
 namespace Ntpages\LaravelTaster\Models;
 
-use DateTimeInterface;
+use Illuminate\Database\Eloquent\Model;
 
 /**
- * @property DateTimeInterface $moment
+ * @property-read int $id
+ * @property string $key
+ * @property string $name
  */
-class Interaction extends AbstractModel
+class Interaction extends Model
 {
     /**
      * @var string

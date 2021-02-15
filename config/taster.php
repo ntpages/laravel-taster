@@ -13,7 +13,7 @@ return [
     */
 
     'cache' => [
-        'key' => 'taster.definition_config',
+        'key' => 'taster',
         'ttl' => 86400
     ],
 
@@ -29,7 +29,7 @@ return [
 
     'cookie' => [
         'ttl' => 2628000,
-        'key' => 'tsr'
+        'key' => 'taster'
     ],
 
     /*

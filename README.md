@@ -1,124 +1,72 @@
 # Laravel Taster
 
-If you're cooking new features for your Laravel app or just wanna know what tastes better this package is definitely for you!
+If you're cooking new features for your Laravel app or just want to know what tastes better this package is definitely
+for you!
 
 ## First steps
+
 1. Install the package\
-`composer require ntpages/laravel-taster`
+   `composer require ntpages/laravel-taster`
 2. Register service provider\
-`Ntpages\LaravelTaster\Provider::class` in the `config/app.php`
+   `Ntpages\LaravelTaster\Provider::class` in the `config/app.php`
 2. Run the migrations\
-`php artisan migrate`
+   `php artisan migrate`
 3. Publish package files\
-` php artisan vendor:publish`
+   ` php artisan vendor:publish`
+
+## Structure
+
+The logic of the package is based on three models, Experiment, Variant and Interaction. All of them are stored in the
+database on tables with `tsr_` prefix. All three have a unique key and name in order to be easily identifiable in the
+code or user interface.
+
+### Experiment
+
+It is a unit that groups different types of variants to easily split traffic and statistics between them. Variants
+hardly depends on it, which means if you are building a UI where you can create/delete experiments deleting one would
+clear all related data.
+
+### Variant
+
+It's an instance that represents one way to seeing the experiment. There's one important thing to be aware of, and it's
+the `portion` attribute. It represents the approximate percentage of visitors that should reach the variant. So you can
+have as many variants as you need in one experiment as long as their portions sum 1, the total amount of visitors.
+
+In order to not lose any data about experiments when there's available portion a default variant is created.
+
+#### Interactions
+
+The simplest unit that helps to keep track and compare the performance of the experiment variants.
 
 ## Usage
-The package provides multiple scenarios of usage, all of them can be combined on same page and can be measured by different
-type of interactions. You should define your Variants, Experiments and Interactions in the database
-for consistency and tracking purposes. The package uses tables prefixed with `tsr_`.
 
-### Interactions
-In order to be able to measure the influence of the feature or tests you should create interactions.
-Table `tsr_interactions`.
+In this section you'll see different approaches that can be used with this package.
 
-#### Events
-You can capture few frontend events:
-- mouseover
-- click
-- view (provided by the package, triggered whenever element is in the viewport)
+### Blade directives and helpers
 
-In this case we've prepared a view helper that should be used inside of the attribute definition are of an HTML element.
+This is the most common way of usage. Using the next structure you can be sure it'll work as expected you should only
+know the keys of the currently enabled experiments and their variants.
+
 ```blade
-<button {{ tsrEvent('wanted-discount', 'mouseover') }}>
-    Get 50% discount
-</button>
-```
+@experiment('pet-preferences')
 
-You can also specify multiple events. Have in mind that all of them have the same "repetition" policy and are related
-to the same interaction type.
-```blade
-<button {{ tsrEvent('wanted-discount', ['mouseover', 'click']) }}>
-    Get 50% discount
-</button>
-```
-
-If you need to split those to different interactions just wrap the target with multiple html tags.
-```blade
-<button {{ tsrEvent('requested-discount', 'click') }}>
-    {{-- takes all the space in the button --}}
-    <div {{ tsrEvent('wanted-discount', 'mouseover') }}>
-        Get 50% discount
-    </div>
-</button>
-```
-
-It's also possible to capture events all the times that those happen, for that just provide a third parameter.
-```blade
-<button {{ tsrEvent('number-is-low', 'click', false) }}>
-    Increase number
-</button>
-```
-> The `view` event ignores the third element
-
-#### Backend
-You always can send an event manually whenever you need if for example you've created a route for each variant/feature,
-and you want to track the visits to those pages, just use this structure in your controller:
-```php
-use Ntpages\LaravelTaster\Models\Interaction;
-use Ntpages\LaravelTaster\Events\Interact;
-use Ntpages\LaravelTaster\Models\Variant;
-
-event(
-    new Interact(
-        Interaction::findByKey('visit-page'),
-        Variant::findByKey('home-update')
-    )
-);
-```
-
-You also can auto detect which variant user saw.
-```php
-use Ntpages\LaravelTaster\Models\Experiment;
-
-app('taster')->interact('interaction-key', Experiment::findByKey('experiment-key'));
-```
-
-Or for feature flagging:
-```php
-use Ntpages\LaravelTaster\Models\Variant;
-
-app('taster')->interact('interaction-key', Variant::findByKey('feature-key'));
-```
-
-
-### Feature flagging
-Stored under `tsr_variants` and not related to any experiment. Managed simply modifying the `portion` attribute,
-set it to `0` if you want to disable the feature or any number between `0` and `0.1` to indicate the percentage of
-audience that should see that feature.
-```blade
-@feature('feature-key')
-    feature body here
-@fallback
-    optional fallback
-@endfeature
-```
-
-### A/B testing
-Stored under `tsr_variants` and grouped by `experiment_id` from the `tsr_experiments` table.
-```blade
-@experiment('experiment-key')
-
-    @variant('variant-key-1')
-        <a href="/pet-owner.html">How to have a pet</a>
+    @variant('no-pet')
+        <a href="/get-a-pet.html">How to have a pet</a>
     @endvariant
 
-    @variant('variant-key-2')
+    @variant('cat-lover')
         <a href="/funny-cats.html">This cats are smashing the day</a>
     @endvariant
 
-    @variant('variant-key-3')
+    @variant('dog-lover')
         <a href="/lovely-dogs.html">Dogs are better than humans</a>
     @endvariant
 
 @endexperiment
 ```
+
+todo: explain how javascript events work
+
+### From within PHP
+
+todo: explain how it can be used manually
