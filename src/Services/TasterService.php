@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Cache;
 
+use Ntpages\LaravelTaster\Exceptions\AbstractTasterException;
 use Ntpages\LaravelTaster\Exceptions\UnexpectedInteractionException;
 use Ntpages\LaravelTaster\Exceptions\UnexpectedVariantException;
 use Ntpages\LaravelTaster\Exceptions\WrongPortioningException;
@@ -170,6 +171,28 @@ class TasterService
         }
 
         Interact::dispatch($interaction, $this->currentVariant);
+    }
+
+    /**
+     * @param string $experimentKey The experiment key
+     * @param array|string $data Associated array with `variantKey` => `interactionKey|interactionKeys`
+     * @throws AbstractTasterException
+     */
+    public function record(string $experimentKey, array $data)
+    {
+        $pickedId = $this->experiment($experimentKey);
+
+        foreach ($data as $key => $interactions) {
+            if ($pickedId === $this->variant($key)) {
+                if (!is_array($interactions)) {
+                    $interactions = [$interactions];
+                }
+                foreach ($interactions as $interaction) {
+                    $this->interact($interaction);
+                }
+                return;
+            }
+        }
     }
 
     /**
