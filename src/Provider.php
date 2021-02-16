@@ -29,6 +29,7 @@ class Provider extends ServiceProvider
         // registering listeners
         Event::listen(Interact::class, CaptureInteraction::class);
 
+        // entities
         Variant::observe(VariantObserver::class);
 
         // singleton helper

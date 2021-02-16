@@ -13,6 +13,9 @@ class CaptureInteraction implements ShouldQueue
      */
     public function handle(Interact $event)
     {
-        $event->variant->interactions()->save($event->interaction, ['moment' => $event->moment]);
+        $event->variant->records()->save($event->interaction, [
+            'moment' => $event->moment,
+            'url' => $event->url,
+        ]);
     }
 }

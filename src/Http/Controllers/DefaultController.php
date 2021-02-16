@@ -30,7 +30,8 @@ class DefaultController extends Controller
 
         Interact::dispatch(
             Interaction::findOrFail($ids['interaction']),
-            Variant::findOrFail($ids['variant'])
+            Variant::findOrFail($ids['variant']),
+            $request->headers->get('referer')
         );
 
         return response(true);

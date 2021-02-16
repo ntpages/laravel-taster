@@ -30,9 +30,9 @@ class Variant extends Model
     |--------------------------------------------------------------------------
     */
 
-    public function interactions(): BelongsToMany
+    public function records(): BelongsToMany
     {
-        return $this->belongsToMany(Interaction::class, 'tsr_stats')->withPivot('moment');
+        return $this->belongsToMany(Interaction::class, 'tsr_records')->withPivot(['moment', 'url']);
     }
 
     public function experiment(): BelongsTo

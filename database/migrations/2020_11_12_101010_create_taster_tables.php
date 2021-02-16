@@ -52,8 +52,8 @@ class CreateTasterTables extends Migration
             });
         }
 
-        if (!Schema::hasTable('tsr_stats')) {
-            Schema::create('tsr_stats', function (Blueprint $table) {
+        if (!Schema::hasTable('tsr_records')) {
+            Schema::create('tsr_records', function (Blueprint $table) {
                 // foreign keys
                 $table->unsignedBigInteger('interaction_id');
                 $table->foreign('interaction_id')
@@ -71,6 +71,9 @@ class CreateTasterTables extends Migration
                 // using CURRENT_TIMESTAMP as default just in case
                 // this value should be set in PHP to be more precise
                 $table->timestamp('moment')->useCurrent();
+
+                // additional payload
+                $table->string('url')->nullable();
             });
         }
     }
@@ -82,7 +85,7 @@ class CreateTasterTables extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('tsr_stats');
+        Schema::dropIfExists('tsr_records');
         Schema::dropIfExists('tsr_variants');
 
         foreach (self::SIMPLE_TABLES as $tableName) {
