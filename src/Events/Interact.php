@@ -15,9 +15,9 @@ class Interact
     public Interaction $interaction;
     public Variant $variant;
     public int $moment;
-    public ?string $url;
+    public string $url;
 
-    public function __construct(Interaction $interaction, Variant $variant, ?string $url)
+    public function __construct(Interaction $interaction, Variant $variant, string $url = '')
     {
         $this->interaction = $interaction;
         $this->variant = $variant;
