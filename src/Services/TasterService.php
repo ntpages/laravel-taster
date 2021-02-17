@@ -170,7 +170,7 @@ class TasterService
             throw new ElementNotFoundException(Interaction::class, $key);
         }
 
-        Interact::dispatch($interaction, $this->currentVariant);
+        Interact::dispatch($interaction, $this->currentVariant, request()->url());
     }
 
     /**
