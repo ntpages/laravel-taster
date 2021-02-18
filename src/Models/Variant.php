@@ -2,7 +2,6 @@
 
 namespace Ntpages\LaravelTaster\Models;
 
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Builder;
@@ -29,11 +28,6 @@ class Variant extends Model
     | Relationships
     |--------------------------------------------------------------------------
     */
-
-    public function records(): BelongsToMany
-    {
-        return $this->belongsToMany(Interaction::class, 'tsr_records')->withPivot(['moment', 'url']);
-    }
 
     public function experiment(): BelongsTo
     {
