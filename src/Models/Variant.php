@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property float $portion
  * @property float $availablePortion
  * @property Experiment $experiment
+ * @method static findOrFail(int $id): ?Variant
  * @method siblings(): Collection|Variant[]
  */
 class Variant extends Model

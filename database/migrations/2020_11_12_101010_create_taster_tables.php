@@ -73,6 +73,7 @@ class CreateTasterTables extends Migration
                 $table->timestamp('moment')->useCurrent();
 
                 // additional payload
+                $table->string('uuid', 36);
                 $table->string('url')->nullable();
             });
         }

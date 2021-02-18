@@ -10,6 +10,7 @@ use DateTime;
  * @property Interaction $interaction
  * @property Variant $variant
  * @property DateTime $moment
+ * @property string $uuid
  * @property string $url
  */
 class Record extends Pivot
@@ -29,6 +30,7 @@ class Record extends Pivot
      */
     public $fillable = [
         'moment',
+        'uuid',
         'url'
     ];
 

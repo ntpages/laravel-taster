@@ -5,6 +5,7 @@ namespace Ntpages\LaravelTaster\Services;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 use Ntpages\LaravelTaster\Exceptions\AbstractTasterException;
 use Ntpages\LaravelTaster\Exceptions\UnexpectedInteractionException;
@@ -13,8 +14,8 @@ use Ntpages\LaravelTaster\Exceptions\WrongPortioningException;
 use Ntpages\LaravelTaster\Exceptions\ElementNotFoundException;
 use Ntpages\LaravelTaster\Models\Interaction;
 use Ntpages\LaravelTaster\Models\Experiment;
-use Ntpages\LaravelTaster\Models\Variant;
 use Ntpages\LaravelTaster\Events\Interact;
+use Ntpages\LaravelTaster\Models\Variant;
 
 class TasterService
 {
@@ -48,6 +49,10 @@ class TasterService
         $this->cookieKey = config('taster.cookie.key', 'taster');
         $this->cookieTtl = config('taster.cookie.ttl', 2628000);
         $this->cookies = json_decode(Cookie::get($this->cookieKey, '{}'), true);
+
+        if (!array_key_exists('uuid', $this->cookies)) {
+            $this->cookies['uuid'] = Str::uuid()->toString();
+        }
 
         // setting up the cache for the PHP app
         $cache = config('taster.cache', ['key' => 'taster', 'ttl' => null]);
@@ -117,7 +122,7 @@ class TasterService
         }
 
         // see if already have a variant assigned
-        $cookieValue = $this->getCookie($this->currentExperiment->id);
+        $cookieValue = $this->cookies[$this->currentExperiment->id] ?? null;
 
         if (is_int($cookieValue)) {
             return $cookieValue;
@@ -127,7 +132,9 @@ class TasterService
         $pickedId = $this->pick($this->currentExperiment->variants->pluck('portion', 'id')->toArray());
 
         // saving it
-        $this->setCookie($this->currentExperiment->id, $pickedId);
+        $this->cookies[$this->currentExperiment->id] = $pickedId;
+
+        Cookie::queue($this->cookieKey, json_encode($this->cookies), $this->cookieTtl);
 
         return $pickedId;
     }
@@ -170,7 +177,7 @@ class TasterService
             throw new ElementNotFoundException(Interaction::class, $key);
         }
 
-        Interact::dispatch($interaction, $this->currentVariant, request()->url());
+        Interact::dispatch($interaction, $this->currentVariant, $this->cookies['uuid'], request()->url());
     }
 
     /**
@@ -196,6 +203,14 @@ class TasterService
     }
 
     /**
+     * @return string The unique identifier of the current visitor used to store the interactions
+     */
+    public function getUuid(): string
+    {
+        return $this->cookies['uuid'];
+    }
+
+    /**
      * Uses the portion for create percentage probability of random selection
      * @param array $items
      * @return mixed
@@ -216,25 +231,5 @@ class TasterService
         }
 
         return $ids[array_rand($ids, 1)];
-    }
-
-    /**
-     * @param int $experimentId
-     * @param int $variantId
-     */
-    private function setCookie(int $experimentId, int $variantId)
-    {
-        $this->cookies[$experimentId] = $variantId;
-
-        Cookie::queue($this->cookieKey, json_encode($this->cookies), $this->cookieTtl);
-    }
-
-    /**
-     * @param int $experimentId
-     * @return string|null
-     */
-    private function getCookie(int $experimentId)
-    {
-        return $this->cookies[$experimentId] ?? null;
     }
 }

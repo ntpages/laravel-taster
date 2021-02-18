@@ -19,6 +19,7 @@ class CaptureInteraction implements ShouldQueue
         $record->interaction()->associate($event->interaction);
         $record->variant()->associate($event->variant);
         $record->moment = $event->moment;
+        $record->uuid = $event->uuid;
         $record->url = $event->url;
         $record->save();
     }

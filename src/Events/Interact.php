@@ -15,13 +15,15 @@ class Interact
     public Interaction $interaction;
     public Variant $variant;
     public int $moment;
+    public string $uuid;
     public string $url;
 
-    public function __construct(Interaction $interaction, Variant $variant, string $url = '')
+    public function __construct(Interaction $interaction, Variant $variant, string $uuid, string $url = '')
     {
         $this->interaction = $interaction;
         $this->variant = $variant;
         $this->moment = time();
+        $this->uuid = $uuid;
         $this->url = $url;
     }
 }
