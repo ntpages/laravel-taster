@@ -5,7 +5,23 @@ use Ntpages\LaravelTaster\Exceptions\UnsupportedEventException;
 use Ntpages\LaravelTaster\Exceptions\ElementNotFoundException;
 use Ntpages\LaravelTaster\Services\TasterService;
 
-if (!function_exists('tsr')) {
+if (!function_exists('tsrUrl')) {
+    /**
+     * @param string $key interaction unique identifier
+     * @return string Url to call in case interaction is triggered
+     * @throws UnexpectedInteractionException
+     * @throws ElementNotFoundException
+     */
+    function tsrUrl(string $key): string
+    {
+        /** @var TasterService $tsr */
+        $tsr = app('taster');
+
+        return $tsr->getInteractionUrl($key);
+    }
+}
+
+if (!function_exists('tsrAttrs')) {
     /**
      * If you use this helper you also should be including the js provided with the package
      * @param string $key interaction unique identifier
@@ -16,7 +32,7 @@ if (!function_exists('tsr')) {
      * @throws UnsupportedEventException
      * @throws ElementNotFoundException
      */
-    function tsr(string $key, $events, bool $once = true): string
+    function tsrAttrs(string $key, $events, bool $once = true): string
     {
         // processing events
         if (is_string($events)) {
