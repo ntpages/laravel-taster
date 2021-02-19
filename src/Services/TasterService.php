@@ -7,11 +7,11 @@ use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
-use Ntpages\LaravelTaster\Exceptions\AbstractTasterException;
 use Ntpages\LaravelTaster\Exceptions\UnexpectedInteractionException;
 use Ntpages\LaravelTaster\Exceptions\UnexpectedVariantException;
 use Ntpages\LaravelTaster\Exceptions\WrongPortioningException;
 use Ntpages\LaravelTaster\Exceptions\ElementNotFoundException;
+use Ntpages\LaravelTaster\Exceptions\AbstractTasterException;
 use Ntpages\LaravelTaster\Models\Interaction;
 use Ntpages\LaravelTaster\Models\Experiment;
 use Ntpages\LaravelTaster\Events\Interact;
@@ -48,7 +48,7 @@ class TasterService
     {
         $this->cookieKey = config('taster.cookie.key', 'taster');
         $this->cookieTtl = config('taster.cookie.ttl', 2628000);
-        $this->cookies = json_decode(Cookie::get($this->cookieKey, '{}'), true);
+        $this->cookies = json_decode(Cookie::get($this->cookieKey, '{}'), true) ?? [];
 
         if (!array_key_exists('uuid', $this->cookies)) {
             $this->cookies['uuid'] = Str::uuid()->toString();
