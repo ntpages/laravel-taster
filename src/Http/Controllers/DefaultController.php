@@ -2,6 +2,7 @@
 
 namespace Ntpages\LaravelTaster\Http\Controllers;
 
+use Illuminate\Cookie\Middleware\EncryptCookies;
 use Ntpages\LaravelTaster\Services\TasterService;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -16,6 +17,12 @@ use Ntpages\LaravelTaster\Models\Variant;
 class DefaultController extends Controller
 {
     use AuthorizesRequests;
+
+    public function __construct()
+    {
+        $this->middleware(EncryptCookies::class);
+    }
+
 
     /**
      * @param Request $request
