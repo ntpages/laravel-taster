@@ -51,7 +51,7 @@
         registerTsrEvent('click');
 
 
-        // Create an intersection observer with default options, that...
+        // Create an intersection observer with default options
         const viewObserver = new IntersectionObserver((entries, observer) => {
             for (const entry of entries) {
                 if (entry.isIntersecting) {

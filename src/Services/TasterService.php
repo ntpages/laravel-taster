@@ -85,7 +85,7 @@ class TasterService
      * @throws UnexpectedInteractionException
      * @throws ElementNotFoundException
      */
-    public function getInteractionUrl(string $key): string
+    public function getInteractionUrl(string $key): ?string
     {
         if (is_null($this->currentVariant)) {
             throw new UnexpectedInteractionException();
@@ -213,10 +213,10 @@ class TasterService
     /**
      * Uses the portion for create percentage probability of random selection
      * @param array $items
-     * @return mixed
+     * @return int
      * @throws WrongPortioningException
      */
-    private function pick(array $items)
+    private function pick(array $items): ?int
     {
         if (array_sum(array_values($items)) > 1) {
             throw new WrongPortioningException(1);

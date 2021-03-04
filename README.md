@@ -42,7 +42,11 @@ The simplest unit that helps to keep track and compare the performance of the ex
 
 In this section you'll see different approaches that can be used with this package.
 
-### Blade directives and helpers
+### Build in helpers
+
+This package provides a set of functions used to config & track your experiments.
+
+#### Front-end
 
 This is the most common way of usage. Using the next structure you can be sure it'll work as expected you should only
 know the keys of the currently enabled experiments and their variants.
@@ -65,8 +69,80 @@ know the keys of the currently enabled experiments and their variants.
 @endexperiment
 ```
 
-todo: explain how javascript events work
+**How to track interactions?**\
+It's as simple as just adding needed attributes to the element you want to track and including the javascript assets.\
+
+> IMPORTANT: these helpers can only be used inside of `@variant` blade directive.
+
+When using the `tsrAttrs` helper you'll need to add the package javascripts. You can do that however you want, but the
+recommended way is deferring the script loading.
+
+```blade
+<script defer async src="{{ asset('vendor/tsr/taster.js') }}"></script>
+```
+
+Another important thing about `tsrAttrs` helper is that you'll always need a html elements so if you don't have one just
+create an empty div. Have in mind that the only event that will make sense in that case is `view`.
+
+```blade
+@experiment('expertiment-1')
+
+   {{-- other variants --}}
+
+    @variant('variant-1')
+        <a href="/page.html" {{ tsrAttrs('click-intent', 'hover') }}>Page</a>
+    @endvariant
+
+@endexperiment
+```
+
+The package also provides the possibility of generation of the interaction URL in case you need it somewhere else.
+
+```blade
+@experiment('expertiment-1')
+
+   {{-- other variants --}}
+
+    @variant('variant-1')
+        <a href="/page.html">Page</a>
+        <script>
+            const interactionUrl = '{{ tsrUrl('interaction-key') }}';
+            // do something with that URL
+        </script>
+    @endvariant
+
+@endexperiment
+```
 
 ### From within PHP
 
-todo: explain how it can be used manually
+There are sometimes when you can capture interactions on back-end. It's always a good idea as that way you're not
+overloading the front-end with extra javascript from the package. For that you can access to `TasterService` right
+inside of Laravel application by using the `app()` helper or using a dependency injection technique.
+
+```php
+use Illuminate\Support\Facades\Log;
+
+use Ntpages\LaravelTaster\Exceptions\AbstractTasterException;
+use Ntpages\LaravelTaster\Services\TasterService;
+
+class FooController
+{
+    public function barAction(TasterService $taster)
+    {
+        try {
+            $taster->record('experiment-key', [
+                'variant-1-key' => 'interaction-1-key',
+                'variant-2-key' => [
+                    'interaction-1-key',
+                    'interaction-2-key'
+                ]
+            ]);
+        } catch (AbstractTasterException $e) {
+            Log::error('Taster says: ' . $e->getMessage());
+        }
+
+        return view('foo.bar');
+    }
+}
+```
