@@ -96,6 +96,15 @@ create an empty div. Have in mind that the only event that will make sense in th
 @endexperiment
 ```
 
+> There are some special cases in the html, when the tag has it's own actions executed by the browser. For that just use an extra wrapper.
+```blade
+<a href="some-page.html">
+   <span {{ tsrAttrs('click-page', 'click') }}>
+      Login
+   </span>
+</a>
+```
+
 The package also provides the possibility of generation of the interaction URL in case you need it somewhere else.
 
 ```blade
