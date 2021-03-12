@@ -182,23 +182,35 @@ class TasterService
 
     /**
      * @param string $experimentKey The experiment key
-     * @param array|string $data Associated array with `variantKey` => `interactionKey|interactionKeys`
+     * @param array|string $payload This argument defines how the method works. In case you pass an array with
+     * `string:variantKey => string|array:interactions` it'll lunch interactions for corresponding variants.
+     *  When you pass a string it'll be an interaction key that will be lunched on the current selected variant.
+     *
      * @throws AbstractTasterException
      */
-    public function record(string $experimentKey, array $data)
+    public function record(string $experimentKey, $payload)
     {
         $pickedId = $this->experiment($experimentKey);
+        $interactions = [];
 
-        foreach ($data as $key => $interactions) {
-            if ($pickedId === $this->variant($key)) {
-                if (!is_array($interactions)) {
-                    $interactions = [$interactions];
+        if (is_array($payload)) {
+            foreach ($payload as $vKey => $iKeys) {
+                if ($pickedId === $this->variant($vKey)) {
+                    $interactions = is_array($iKeys) ? $iKeys : [$iKeys];
+                    break;
                 }
-                foreach ($interactions as $interaction) {
-                    $this->interact($interaction);
-                }
-                return;
             }
+        } else {
+            foreach ($this->currentExperiment->variants as $variant) {
+                if ($pickedId === $this->variant($variant->key)) {
+                    $interactions = [$payload];
+                    break;
+                }
+            }
+        }
+
+        foreach ($interactions as $interaction) {
+            $this->interact($interaction);
         }
     }
 

@@ -23,7 +23,6 @@ class DefaultController extends Controller
         $this->middleware(EncryptCookies::class);
     }
 
-
     /**
      * @param Request $request
      * @return mixed

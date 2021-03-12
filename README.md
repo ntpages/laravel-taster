@@ -96,7 +96,7 @@ create an empty div. Have in mind that the only event that will make sense in th
 @endexperiment
 ```
 
-> There are some special cases in the html, when the tag has it's own actions executed by the browser. For that just use an extra wrapper.
+> There are some special cases in the html, when the tag has its own actions executed by the browser. For that just use an extra wrapper.
 
 ```blade
 <a href="some-page.html">
@@ -141,6 +141,10 @@ class FooController
     public function barAction(TasterService $taster)
     {
         try {
+            // interaction for whatever variant user sees
+            $taster->record('experiment-key', 'interaction-1-key');
+
+            // granular settings depending on variant
             $taster->record('experiment-key', [
                 'variant-1-key' => 'interaction-1-key',
                 'variant-2-key' => [
