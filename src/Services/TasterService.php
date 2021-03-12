@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
+use Ntpages\LaravelTaster\Events\Impression;
 use Ntpages\LaravelTaster\Exceptions\UnexpectedInteractionException;
 use Ntpages\LaravelTaster\Exceptions\UnexpectedVariantException;
 use Ntpages\LaravelTaster\Exceptions\WrongPortioningException;
@@ -131,7 +132,10 @@ class TasterService
         // retrieving the variant
         $pickedId = $this->pick($this->currentExperiment->variants->pluck('portion', 'id')->toArray());
 
-        // saving it
+        // first time triggering this experiment
+        Impression::dispatch($this->currentExperiment->variants->find($pickedId), $this->getUuid(), request()->fullUrl());
+
+        // saving the variant for the user
         $this->cookies[$this->currentExperiment->id] = $pickedId;
 
         Cookie::queue($this->cookieKey, json_encode($this->cookies), $this->cookieTtl);
