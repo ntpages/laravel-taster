@@ -31,7 +31,7 @@ class VariantObserver
      */
     private function checkPortion(Variant $variant)
     {
-        if ($variant->availablePortion > $variant->portion) {
+        if ($variant->portion > $variant->availablePortion) {
             throw new WrongPortioningException($variant->availablePortion);
         }
     }
