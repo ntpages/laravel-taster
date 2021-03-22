@@ -7,13 +7,13 @@ use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
-use Ntpages\LaravelTaster\Events\Impression;
 use Ntpages\LaravelTaster\Exceptions\UnexpectedInteractionException;
 use Ntpages\LaravelTaster\Exceptions\UnexpectedVariantException;
 use Ntpages\LaravelTaster\Exceptions\WrongPortioningException;
 use Ntpages\LaravelTaster\Exceptions\ElementNotFoundException;
 use Ntpages\LaravelTaster\Exceptions\AbstractTasterException;
 use Ntpages\LaravelTaster\Models\Interaction;
+use Ntpages\LaravelTaster\Events\Impression;
 use Ntpages\LaravelTaster\Models\Experiment;
 use Ntpages\LaravelTaster\Events\Interact;
 use Ntpages\LaravelTaster\Models\Variant;
@@ -78,33 +78,6 @@ class TasterService
 
         // toggling between two different cache strategies
         $this->instances = count($args) === 3 ? Cache::remember(...$args) : Cache::forever(...$args);
-    }
-
-    /**
-     * @param string $key
-     * @return string
-     * @throws UnexpectedInteractionException
-     * @throws ElementNotFoundException
-     */
-    public function getInteractionUrl(string $key): ?string
-    {
-        if (is_null($this->currentVariant)) {
-            throw new UnexpectedInteractionException();
-        }
-
-        $interaction = $this->instances[Interaction::class]->get($key);
-
-        if (is_null($interaction)) {
-            throw new ElementNotFoundException(Interaction::class, $key);
-        }
-
-        return route(config('taster.route.name'), [
-            // protecting from guessing the ids combination
-            'token' => encrypt([
-                'variant' => $this->currentVariant->id,
-                'interaction' => $interaction->id
-            ])
-        ]);
     }
 
     /**
@@ -219,6 +192,33 @@ class TasterService
     }
 
     /**
+     * @param string $key
+     * @return string
+     * @throws UnexpectedInteractionException
+     * @throws ElementNotFoundException
+     */
+    public function getInteractionUrl(string $key): ?string
+    {
+        if (is_null($this->currentVariant)) {
+            throw new UnexpectedInteractionException();
+        }
+
+        $interaction = $this->instances[Interaction::class]->get($key);
+
+        if (is_null($interaction)) {
+            throw new ElementNotFoundException(Interaction::class, $key);
+        }
+
+        return route(config('taster.route.name'), [
+            // protecting from guessing the ids combination
+            'token' => encrypt([
+                'variant' => $this->currentVariant->id,
+                'interaction' => $interaction->id
+            ])
+        ]);
+    }
+
+    /**
      * @return string The unique identifier of the current visitor used to store the interactions
      */
     public function getUuid(): string
@@ -227,12 +227,20 @@ class TasterService
     }
 
     /**
+     * @return Collection[]
+     */
+    public function getInstances(): array
+    {
+        return $this->instances;
+    }
+
+    /**
      * Uses the portion for create percentage probability of random selection
      * @param array $items
      * @return int
      * @throws WrongPortioningException
      */
-    private function pick(array $items): ?int
+    public function pick(array $items): ?int
     {
         if (array_sum(array_values($items)) > 1) {
             throw new WrongPortioningException(1);
