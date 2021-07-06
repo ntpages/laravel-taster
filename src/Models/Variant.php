@@ -37,7 +37,7 @@ class Variant extends Model
 
     public function siblings(): HasMany
     {
-        return $this->hasMany(self::class, 'experiment_id', 'experiment_id');
+        return $this->hasMany(self::class, 'experiment_id', 'experiment_id')->where('id', '!=', $this->id);
     }
 
     /*
